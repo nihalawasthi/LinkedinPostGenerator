@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "LinkedIn Tech Post Bot - Free Edition",
+  "version": "2.1",
+  "description": "Automate LinkedIn posts with free AI-powered tech content",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "notifications",
+    "alarms",
+    "https://api.groq.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.unsplash.com/*",
+    "https://source.unsplash.com/*",
+    "https://www.linkedin.com/*"
+  ],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://api.groq.com/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.unsplash.com/*",
+    "https://source.unsplash.com/*",
+    "https://picsum.photos/*",
+    "https://hacker-news.firebaseio.com/*",
+    "https://www.reddit.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.linkedin.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "LinkedIn Tech Bot"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["popup.html", "popup.js"],
+      "matches": ["https://www.linkedin.com/*"]
+    }
+  ]
+}

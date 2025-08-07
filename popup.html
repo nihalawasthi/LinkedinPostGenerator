@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      width: 450px;
+      padding: 0;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 12px;
+      margin: 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #0077b5 0%, #005885 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+    }
+    
+    .header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+      opacity: 0.3;
+    }
+    
+    .header h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .free-badge {
+      background: linear-gradient(45deg, #28a745, #20c997);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .status {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      text-align: center;
+      font-weight: 500;
+      border: none;
+    }
+    .status.success { 
+      background: linear-gradient(135deg, #d4edda, #c3e6cb); 
+      color: #155724; 
+      border-left: 4px solid #28a745;
+    }
+    .status.error { 
+      background: linear-gradient(135deg, #f8d7da, #f5c6cb); 
+      color: #721c24; 
+      border-left: 4px solid #dc3545;
+    }
+    .status.info { 
+      background: linear-gradient(135deg, #d1ecf1, #bee5eb); 
+      color: #0c5460; 
+      border-left: 4px solid #17a2b8;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #2c3e50;
+      font-size: 14px;
+    }
+    
+    input, textarea, select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+    }
+    
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #0077b5;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(0, 119, 181, 0.1);
+    }
+    
+    textarea {
+      height: 80px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    
+    button {
+      background: linear-gradient(135deg, #0077b5, #005885);
+      color: white;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    button:hover::before {
+      left: 100%;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 119, 181, 0.3);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .secondary-btn {
+      background: linear-gradient(135deg, #6c757d, #545b62);
+    }
+    
+    .secondary-btn:hover {
+      box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+    }
+    
+    .danger-btn {
+      background: linear-gradient(135deg, #dc3545, #c82333);
+    }
+    
+    .danger-btn:hover {
+      box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+    }
+    
+    .copy-btn {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .copy-btn:hover {
+      box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+    }
+    
+    .post-preview {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border: 2px solid #dee2e6;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 14px;
+      line-height: 1.6;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .post-preview .post-content {
+      margin-bottom: 10px;
+    }
+    
+    .topic-list {
+      max-height: 140px;
+      overflow-y: auto;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      padding: 12px;
+      background: #f8f9fa;
+    }
+    
+    .topic-item {
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #e9ecef, #dee2e6);
+      border-radius: 6px;
+      font-size: 12px;
+      border-left: 3px solid #0077b5;
+      transition: all 0.2s ease;
+    }
+    
+    .topic-item:hover {
+      transform: translateX(4px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 30px 20px;
+      background: rgba(255,255,255,0.95);
+      border-radius: 12px;
+      margin: 10px;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #0077b5;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 12px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .api-option {
+      padding: 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+    }
+    
+    .api-option:hover {
+      border-color: #0077b5;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .api-option.selected {
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      border-color: #2196f3;
+      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+    }
+    
+    .api-description {
+      font-size: 12px;
+      color: #666;
+      margin-top: 6px;
+      font-style: italic;
+    }
+    
+    .news-sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    
+    .news-source {
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #f0f0f0, #e0e0e0);
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      font-weight: 500;
+    }
+    
+    .news-source:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .news-source.selected {
+      background: linear-gradient(135deg, #2196f3, #1976d2);
+      color: white;
+      border-color: #1565c0;
+      box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .button-group button {
+      flex: 1;
+      margin-bottom: 0;
+    }
+    
+    small {
+      display: block;
+      margin-top: 6px;
+      font-size: 11px;
+      color: #666;
+    }
+    
+    small a {
+      color: #0077b5;
+      text-decoration: none;
+    }
+    
+    small a:hover {
+      text-decoration: underline;
+    }
+    
+    .icon {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #0077b5;
+      border-radius: 3px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #005885;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>🤖 LinkedIn Tech Bot <span class="free-badge">FREE</span></h2>
+    </div>
+
+    <div class="content">
+      <div id="status" class="status" style="display: none;"></div>
+
+      <div id="setup-section">
+        <div class="form-group">
+          <label>Choose AI Provider:</label>
+          <div id="ai-providers">
+            <div class="api-option" data-provider="groq">
+              <strong>🚀 Groq <span class="free-badge">FREE</span></strong>
+              <div class="api-description">Lightning-fast inference • 14,400 requests/day free</div>
+            </div>
+            <div class="api-option" data-provider="gemini">
+              <strong>🧠 Google Gemini <span class="free-badge">FREE</span></strong>
+              <div class="api-description">Advanced AI model • 15 requests/minute free</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="groq-key-section" class="form-group" style="display: none;">
+          <label for="groq-key">🔑 Groq API Key:</label>
+          <input type="password" id="groq-key" placeholder="gsk_...">
+          <small>Get your free API key from <a href="https://console.groq.com" target="_blank">console.groq.com</a></small>
+        </div>
+
+        <div id="gemini-key-section" class="form-group" style="display: none;">
+          <label for="gemini-key">🔑 Gemini API Key:</label>
+          <input type="password" id="gemini-key" placeholder="AIza...">
+          <small>Get your free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a></small>
+        </div>
+
+        <div class="form-group">
+          <label for="unsplash-key">🖼️ Unsplash Access Key (Optional):</label>
+          <input type="password" id="unsplash-key" placeholder="Your Unsplash Access Key">
+          <small>Get free API key from <a href="https://unsplash.com/developers" target="_blank">unsplash.com/developers</a> for high-quality images</small>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="enable-image-generation" style="width: auto; margin-right: 8px;">
+            🎨 Generate accompanying images
+          </label>
+          <small>Uses Picsum placeholder or Unsplash with API key</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="post-frequency">📅 Post Frequency:</label>
+          <select id="post-frequency">
+            <option value="manual">Manual Only</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="topics-focus">🎯 Focus Areas:</label>
+          <textarea id="topics-focus" placeholder="e.g., Cybersecurity, AI/ML, Cloud Computing, DevOps, Blockchain"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>📰 News Sources for Trending Topics:</label>
+          <div class="news-sources">
+            <div class="news-source" data-source="techcrunch">TechCrunch</div>
+            <div class="news-source" data-source="hackernews">Hacker News</div>
+            <div class="news-source" data-source="reddit">Reddit Tech</div>
+            <div class="news-source" data-source="github">GitHub Trending</div>
+            <div class="news-source" data-source="devto">Dev.to</div>
+          </div>
+        </div>
+
+        <button id="save-settings">💾 Save Settings</button>
+      </div>
+
+      <div id="main-section" style="display: none;">
+        <button id="generate-post">🎯 Generate New Post</button>
+        
+        <div id="post-preview-section" style="display: none;">
+          <h3 style="margin: 0 0 12px 0; color: #2c3e50;">📝 Generated Post:</h3>
+          <div id="post-preview" class="post-preview"></div>
+          
+          <div class="button-group">
+            <button id="copy-post" class="copy-btn">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+              </svg>
+              Copy & Approve
+            </button>
+            <button id="approve-post">✅ Post to LinkedIn</button>
+          </div>
+          
+          <button id="regenerate-post" class="secondary-btn">🔄 Regenerate</button>
+        </div>
+
+        <div class="form-group">
+          <label>📊 Used Topics (Last 30 days):</label>
+          <div id="used-topics" class="topic-list">
+            <div class="topic-item">No topics used yet</div>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button id="clear-topics" class="danger-btn">🗑️ Clear History</button>
+          <button id="view-settings" class="secondary-btn">⚙️ Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" class="loading" style="display: none;">
+    <div class="spinner"></div>
+    <span id="loading-text">Processing...</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
