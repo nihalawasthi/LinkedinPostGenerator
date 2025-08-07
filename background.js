@@ -92,8 +92,8 @@ class BackgroundBot {
       // Create a notification to remind user
       chrome.notifications.create({
         type: 'basic',
-        iconUrl: 'icon48.png',
-        title: 'LinkedIn Tech Bot',
+        iconUrl: '/public/icon128.png',
+        title: 'LinkedIn Post Generator',
         message: 'Time for your scheduled post! Click to generate content.',
         buttons: [
           { title: 'Generate Post' },
