@@ -10,39 +10,76 @@ class LinkedInBot {
     this.bindEvents();
     this.updateUI();
     await this.loadUsedTopics();
+    await this.loadLastGeneratedPost();
   }
 
   async loadSettings() {
-    // Use local storage for API keys (persistent) and sync for other settings
-    const localResult = await chrome.storage.local.get([
-      'groqKey',
-      'geminiKey',
-      'unsplashKey'
-    ]);
-    
-    const syncResult = await chrome.storage.sync.get([
-      'selectedProvider',
-      'postFrequency',
-      'topicsFocus',
-      'selectedNewsSources',
-      'enableImageGeneration',
-      'isSetup'
-    ]);
-    
-    this.settings = {
-      selectedProvider: syncResult.selectedProvider || 'groq',
-      groqKey: localResult.groqKey || '',
-      geminiKey: localResult.geminiKey || '',
-      unsplashKey: localResult.unsplashKey || '',
-      postFrequency: syncResult.postFrequency || 'manual',
-      topicsFocus: syncResult.topicsFocus || 'Cybersecurity, AI/ML, Cloud Computing, DevOps, Blockchain',
-      selectedNewsSources: syncResult.selectedNewsSources || ['hackernews', 'reddit'],
-      enableImageGeneration: syncResult.enableImageGeneration || false,
-      isSetup: syncResult.isSetup || false
-    };
+    try {
+      // Check if we need to migrate from old sync storage
+      const syncData = await chrome.storage.sync.get(['selectedProvider', 'postFrequency', 'topicsFocus', 'selectedNewsSources', 'enableImageGeneration', 'isSetup']);
+      
+      // Load all settings from local storage for persistence across browser sessions
+      const result = await chrome.storage.local.get([
+        'groqKey',
+        'geminiKey',
+        'unsplashKey',
+        'selectedProvider',
+        'postFrequency',
+        'topicsFocus',
+        'selectedNewsSources',
+        'enableImageGeneration',
+        'isSetup'
+      ]);
+      
+      console.log('🔍 Raw storage data loaded:', {
+        local: result,
+        sync: syncData
+      });
+      
+      // Migrate from sync storage if local storage is empty but sync has data
+      let finalSettings = result;
+      if (syncData.isSetup && !result.isSetup) {
+        console.log('🔄 Migrating settings from sync to local storage...');
+        finalSettings = { ...result, ...syncData };
+        await chrome.storage.local.set(finalSettings);
+        await chrome.storage.sync.clear(); // Clear sync storage after migration
+        console.log('✅ Migration completed');
+      }
 
-    this.selectedProvider = this.settings.selectedProvider;
-    this.selectedNewsSources = this.settings.selectedNewsSources;
+      this.settings = {
+        selectedProvider: finalSettings.selectedProvider || 'groq',
+        groqKey: finalSettings.groqKey || '',
+        geminiKey: finalSettings.geminiKey || '',
+        unsplashKey: finalSettings.unsplashKey || '',
+        postFrequency: finalSettings.postFrequency || 'manual',
+        topicsFocus: finalSettings.topicsFocus || 'Cybersecurity, AI/ML, Cloud Computing, DevOps, Blockchain',
+        selectedNewsSources: finalSettings.selectedNewsSources || ['hackernews', 'reddit'],
+        enableImageGeneration: finalSettings.enableImageGeneration || false,
+        isSetup: finalSettings.isSetup || false
+      };
+
+      this.selectedProvider = this.settings.selectedProvider;
+      this.selectedNewsSources = this.settings.selectedNewsSources;
+      
+      console.log('✅ Settings loaded and applied:', this.settings);
+      
+    } catch (error) {
+      console.error('❌ Error loading settings:', error);
+      // Set default values on error
+      this.settings = {
+        selectedProvider: 'groq',
+        groqKey: '',
+        geminiKey: '',
+        unsplashKey: '',
+        postFrequency: 'manual',
+        topicsFocus: 'Cybersecurity, AI/ML, Cloud Computing, DevOps, Blockchain',
+        selectedNewsSources: ['hackernews', 'reddit'],
+        enableImageGeneration: false,
+        isSetup: false
+      };
+      this.selectedProvider = 'groq';
+      this.selectedNewsSources = ['hackernews', 'reddit'];
+    }
   }
 
   bindEvents() {
@@ -73,6 +110,41 @@ class LinkedInBot {
     document.getElementById('regenerate-post').addEventListener('click', () => this.generatePost());
     document.getElementById('clear-topics').addEventListener('click', () => this.clearTopics());
     document.getElementById('view-settings').addEventListener('click', () => this.showSettings());
+    
+    // Debug functions for testing persistence (can be removed in production)
+    window.debugStorage = {
+      checkAll: async () => {
+        const local = await chrome.storage.local.get();
+        const sync = await chrome.storage.sync.get();
+        console.log('🔍 ALL STORAGE DEBUG:');
+        console.log('Local Storage:', local);
+        console.log('Sync Storage:', sync);
+        return { local, sync };
+      },
+      clearAll: async () => {
+        await chrome.storage.local.clear();
+        await chrome.storage.sync.clear();
+        console.log('🗑️ All storage cleared');
+        location.reload();
+      },
+      testPersistence: async () => {
+        const testData = {
+          testKey: 'testValue_' + Date.now(),
+          selectedProvider: 'groq',
+          postFrequency: 'daily',
+          isSetup: true
+        };
+        await chrome.storage.local.set(testData);
+        console.log('💾 Test data saved:', testData);
+        
+        const verification = await chrome.storage.local.get(Object.keys(testData));
+        console.log('✅ Verification read:', verification);
+        
+        return verification;
+      }
+    };
+    
+    console.log('🛠️ Debug functions available: window.debugStorage.checkAll(), window.debugStorage.clearAll(), window.debugStorage.testPersistence()');
   }
 
   updateApiKeySection() {
@@ -90,54 +162,55 @@ class LinkedInBot {
   }
 
   async saveSettings() {
-    const groqKey = document.getElementById('groq-key').value;
-    const geminiKey = document.getElementById('gemini-key').value;
-    const unsplashKey = document.getElementById('unsplash-key').value;
-    const postFrequency = document.getElementById('post-frequency').value;
-    const topicsFocus = document.getElementById('topics-focus').value;
-    const enableImageGeneration = document.getElementById('enable-image-generation').checked;
+    try {
+      const groqKey = document.getElementById('groq-key').value;
+      const geminiKey = document.getElementById('gemini-key').value;
+      const unsplashKey = document.getElementById('unsplash-key').value;
+      const postFrequency = document.getElementById('post-frequency').value;
+      const topicsFocus = document.getElementById('topics-focus').value;
+      const enableImageGeneration = document.getElementById('enable-image-generation').checked;
 
-    // Validate API key based on selected provider
-    if (this.selectedProvider === 'groq' && !groqKey && !this.settings.groqKey) {
-      this.showStatus('Please enter your Groq API key', 'error');
-      return;
+      // Validate API key based on selected provider
+      if (this.selectedProvider === 'groq' && !groqKey && !this.settings.groqKey) {
+        this.showStatus('Please enter your Groq API key', 'error');
+        return;
+      }
+      
+      if (this.selectedProvider === 'gemini' && !geminiKey && !this.settings.geminiKey) {
+        this.showStatus('Please enter your Gemini API key', 'error');
+        return;
+      }
+
+      // Save all settings to local storage for persistence across browser sessions
+      const settingsToSave = {
+        groqKey: groqKey || this.settings.groqKey,
+        geminiKey: geminiKey || this.settings.geminiKey,
+        unsplashKey: unsplashKey || this.settings.unsplashKey,
+        selectedProvider: this.selectedProvider,
+        postFrequency,
+        topicsFocus,
+        selectedNewsSources: this.selectedNewsSources,
+        enableImageGeneration,
+        isSetup: true
+      };
+
+      await chrome.storage.local.set(settingsToSave);
+      
+      // Verify settings were saved correctly
+      const verification = await chrome.storage.local.get(Object.keys(settingsToSave));
+      console.log('💾 Settings saved to storage:', settingsToSave);
+      console.log('🔍 Verification read from storage:', verification);
+
+      // Update local settings object
+      this.settings = settingsToSave;
+
+      this.showStatus('All settings saved successfully! Everything will persist across browser sessions.', 'success');
+      this.updateUI();
+      
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      this.showStatus('Error saving settings: ' + error.message, 'error');
     }
-    
-    if (this.selectedProvider === 'gemini' && !geminiKey && !this.settings.geminiKey) {
-      this.showStatus('Please enter your Gemini API key', 'error');
-    }
-
-    // Save API keys to local storage (persistent)
-    const localData = {};
-    if (groqKey) localData.groqKey = groqKey;
-    if (geminiKey) localData.geminiKey = geminiKey;
-    if (unsplashKey) localData.unsplashKey = unsplashKey;
-    
-    if (Object.keys(localData).length > 0) {
-      await chrome.storage.local.set(localData);
-    }
-
-    // Save other settings to sync storage
-    const syncData = {
-      selectedProvider: this.selectedProvider,
-      postFrequency,
-      topicsFocus,
-      selectedNewsSources: this.selectedNewsSources,
-      enableImageGeneration,
-      isSetup: true
-    };
-    
-    await chrome.storage.sync.set(syncData);
-
-    // Update local settings object
-    this.settings = {
-      ...this.settings,
-      ...localData,
-      ...syncData
-    };
-
-    this.showStatus('Settings saved successfully!', 'success');
-    this.updateUI();
   }
 
   updateUI() {
@@ -202,6 +275,9 @@ class LinkedInBot {
         topic: selectedTopic,
         timestamp: Date.now()
       };
+
+      // Save the last generated post for persistence
+      await this.saveLastGeneratedPost(this.currentPost);
 
       this.showPostPreview(postData.content, postData.imageUrl);
       this.hideLoading();
@@ -746,32 +822,74 @@ class LinkedInBot {
   async approvePost() {
     if (!this.currentPost) return;
 
-    this.showLoading('Posting to LinkedIn...');
+    this.showLoading('Connecting to LinkedIn...');
 
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       
       if (!tab.url.includes('linkedin.com')) {
-        this.showStatus('Please navigate to LinkedIn first', 'error');
+        this.showStatus('Please navigate to LinkedIn first (linkedin.com/feed)', 'error');
         this.hideLoading();
         return;
       }
 
-      await chrome.tabs.sendMessage(tab.id, {
+      // Check if content script is ready
+      let contentScriptReady = false;
+      try {
+        const response = await chrome.tabs.sendMessage(tab.id, { action: 'checkReady' });
+        contentScriptReady = response?.ready;
+        console.log('📡 Content script status:', response);
+      } catch (checkError) {
+        console.log('📡 Content script not responding, attempting to inject...');
+      }
+
+      // If content script isn't ready, inject it
+      if (!contentScriptReady) {
+        this.showLoading('Initializing LinkedIn automation...');
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content.js']
+          });
+          console.log('✅ Content script injected');
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for initialization
+        } catch (injectError) {
+          console.error('❌ Failed to inject content script:', injectError);
+          this.showFallbackOptions();
+          this.hideLoading();
+          return;
+        }
+      }
+
+      this.showLoading('Posting to LinkedIn...');
+      
+      // Send the post message
+      const response = await chrome.tabs.sendMessage(tab.id, {
         action: 'postToLinkedIn',
-        content: this.currentPost.content
+        content: this.currentPost.content,
+        imageUrl: this.currentPost.imageUrl
       });
 
-      await this.saveUsedTopic(this.currentPost.topic);
-      
-      this.showStatus('Post scheduled for LinkedIn!', 'success');
-      this.hidePostPreview();
-      await this.loadUsedTopics();
+      if (response?.success) {
+        await this.saveUsedTopic(this.currentPost.topic);
+        this.showStatus('Post published to LinkedIn successfully! ✨', 'success');
+        this.hidePostPreview();
+        await this.loadUsedTopics();
+      } else {
+        throw new Error(response?.error || 'Unknown error occurred');
+      }
+
       this.hideLoading();
 
     } catch (error) {
-      console.error('Error posting:', error);
-      this.showStatus('Error posting to LinkedIn: ' + error.message, 'error');
+      console.error('❌ Error posting to LinkedIn:', error);
+      
+      if (error.message.includes('Could not establish connection')) {
+        this.showFallbackOptions();
+      } else {
+        this.showStatus('Error: ' + error.message, 'error');
+      }
+      
       this.hideLoading();
     }
   }
@@ -819,6 +937,56 @@ class LinkedInBot {
     }
   }
 
+  async saveLastGeneratedPost(post) {
+    try {
+      await chrome.storage.local.set({ lastGeneratedPost: post });
+      console.log('💾 Last generated post saved for persistence:', {
+        topic: post.topic,
+        timestamp: post.timestamp,
+        hasImage: !!post.imageUrl
+      });
+    } catch (error) {
+      console.error('❌ Error saving last generated post:', error);
+    }
+  }
+
+  async loadLastGeneratedPost() {
+    try {
+      const result = await chrome.storage.local.get(['lastGeneratedPost']);
+      
+      if (result.lastGeneratedPost) {
+        // Only restore if the post is from the current session or recent (within 24 hours)
+        const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+        
+        if (result.lastGeneratedPost.timestamp > twentyFourHoursAgo) {
+          this.currentPost = result.lastGeneratedPost;
+          this.showPostPreview(result.lastGeneratedPost.content, result.lastGeneratedPost.imageUrl);
+          
+          console.log('✅ Restored last generated post from storage:', {
+            topic: result.lastGeneratedPost.topic,
+            age: Math.round((Date.now() - result.lastGeneratedPost.timestamp) / 1000 / 60) + ' minutes ago'
+          });
+          
+          // Show a small indicator that this is restored content
+          const statusDiv = document.getElementById('status');
+          statusDiv.innerHTML = '🔄 Restored your last generated post';
+          statusDiv.className = 'status info';
+          statusDiv.style.display = 'block';
+          
+          setTimeout(() => {
+            statusDiv.style.display = 'none';
+          }, 3000);
+        } else {
+          // Clean up old post
+          await chrome.storage.local.remove(['lastGeneratedPost']);
+          console.log('🗑️ Removed old generated post from storage');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error loading last generated post:', error);
+    }
+  }
+
   hidePostPreview() {
     document.getElementById('post-preview-section').style.display = 'none';
     this.currentPost = null;
@@ -836,6 +1004,32 @@ class LinkedInBot {
 
   hideLoading() {
     document.getElementById('loading').style.display = 'none';
+  }
+
+  showFallbackOptions() {
+    const statusDiv = document.getElementById('status');
+    statusDiv.innerHTML = `
+      <strong>⚠️ Automatic posting failed</strong><br>
+      <small>Don't worry! Your content is copied to clipboard.</small><br>
+      <strong>Manual steps:</strong><br>
+      1. Go to <a href="https://www.linkedin.com/feed/" target="_blank">LinkedIn Feed</a><br>
+      2. Click "Start a post"<br>
+      3. Paste your content (Ctrl+V)<br>
+      4. Click "Post"
+    `;
+    statusDiv.className = 'status info';
+    statusDiv.style.display = 'block';
+    
+    // Copy content to clipboard as fallback
+    if (this.currentPost) {
+      navigator.clipboard.writeText(this.currentPost.content)
+        .then(() => console.log('✅ Content copied to clipboard as fallback'))
+        .catch(() => console.log('❌ Could not copy to clipboard'));
+    }
+    
+    setTimeout(() => {
+      statusDiv.style.display = 'none';
+    }, 10000); // Longer timeout for instructions
   }
 
   showStatus(message, type) {

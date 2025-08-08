@@ -14,7 +14,7 @@ class BackgroundBot {
 
     // Listen for settings changes to update alarms
     chrome.storage.onChanged.addListener((changes, namespace) => {
-      if (namespace === 'sync' && changes.postFrequency) {
+      if (namespace === 'local' && changes.postFrequency) {
         this.updateSchedule(changes.postFrequency.newValue);
       }
     });
@@ -24,9 +24,13 @@ class BackgroundBot {
   }
 
   async initializeSchedule() {
-    const result = await chrome.storage.sync.get(['postFrequency']);
-    const frequency = result.postFrequency || 'manual';
-    this.updateSchedule(frequency);
+    try {
+      const result = await chrome.storage.local.get(['postFrequency']);
+      const frequency = result.postFrequency || 'manual';
+      this.updateSchedule(frequency);
+    } catch (error) {
+      console.error('Error initializing schedule:', error);
+    }
   }
 
   updateSchedule(frequency) {
@@ -81,11 +85,18 @@ class BackgroundBot {
 
   async handleScheduledPost() {
     try {
-      // Check if user has valid settings
-      const settings = await chrome.storage.sync.get(['openaiKey', 'isSetup']);
+      // Check if user has valid settings from local storage
+      const localSettings = await chrome.storage.local.get(['isSetup', 'selectedProvider', 'groqKey', 'geminiKey']);
+
+      const provider = localSettings.selectedProvider || 'groq';
+      const hasGroqKey = !!localSettings.groqKey;
+      const hasGeminiKey = !!localSettings.geminiKey;
+
+      const isConfigured = localSettings.isSetup &&
+        ((provider === 'groq' && hasGroqKey) || (provider === 'gemini' && hasGeminiKey));
       
-      if (!settings.isSetup || !settings.openaiKey) {
-        console.log('Bot not properly configured for scheduled posting');
+      if (!isConfigured) {
+        console.log('Bot not properly configured for scheduled posting. Missing API key or setup.');
         return;
       }
 
